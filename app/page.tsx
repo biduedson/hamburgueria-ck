@@ -1,113 +1,179 @@
+import { Button } from "./_components/ui/button";
+import { ChevronRightIcon } from "lucide-react";
+import { db } from "./_lib/prisma";
+import Link from "next/link";
+import getConfig from "next/config";
 import Image from "next/image";
+import Header from "./_components/header";
+import Search from "./_components/search";
+import CategoryList from "./_components/categoryList";
+import PromoBanner from "./_components/promo-banner";
+import ProductList from "./_components/productList";
+import RestaurantList from "./_components/restaurant-list";
 
-export default function Home() {
+const fetch = async () => {
+  const getProducts = await db.product.findMany({
+    where: {
+      discountPercentage: {
+        gt: 0,
+      },
+    },
+    take: 10,
+    include: {
+      restaurant: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  const getBurguersCategory = db.category.findFirst({
+    where: {
+      name: "Hambúrgueres",
+    },
+  });
+
+  const getPizzasCategory = db.category.findFirst({
+    where: {
+      name: "Pizzas",
+    },
+  });
+
+  const [products, burguersCategory, pizzasCategory] = await Promise.all([
+    getProducts,
+    getBurguersCategory,
+    getPizzasCategory,
+  ]);
+
+  return { products, burguersCategory, pizzasCategory };
+};
+
+const Home = async () => {
+  const { products, burguersCategory, pizzasCategory } = await fetch();
+  const { serverRuntimeConfig } = getConfig();
+
+  if (serverRuntimeConfig.decimalWarning === false) {
+    console.warn = () => {};
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
+    <>
+      <Header isSearch={false} />
+      <div className="px-5 pt-5 lg:hidden">
+        <Search YellowButton={true} />
+      </div>
+      <div className="relative hidden h-[500px] w-full  bg-customRed lg:flex">
+        <div className="absolute top-24 lg:left-14 xl:left-24">
+          <div className="mb-4">
+            <h1 className="text-[38px] font-bold text-white xl:text-[48px] ">
+              Está com fome?
+            </h1>
+            <p className="text-sm font-light text-white xl:text-lg">
+              Com apenas alguns cliques, encontre refeições acessíveis perto de
+              você.
+            </p>
+          </div>
+          <div className="flex h-[75px] flex-col items-center justify-center rounded-[10px] bg-white lg:w-[568px] xl:w-[668px] ">
+            <Search />
+          </div>
+        </div>
+        <div className="absolute right-0 lg:bottom-[-93px] xl:bottom-[-53px]">
+          <div className=" relative h-[540px] w-[530px] xl:h-[540px] xl:w-[650px]">
             <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+              src="/hand-food-image-2.png"
+              alt="hero image"
+              fill
+              quality={100}
+              className="object-contain"
             />
-          </a>
+          </div>
         </div>
       </div>
+      <div className="px-5">
+        <div className=" lg:space-y-6 lg:px-12 xl:px-24 2xl:px-28">
+          <div className="pt-6">
+            <CategoryList />
+          </div>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+          <div className=" pt-6 lg:hidden">
+            <Link href={`/categories/${pizzasCategory?.id}/products`}>
+              <PromoBanner
+                src="/promo-banner-01.png"
+                alt="Até 30% de desconto em pizzas!"
+              />
+            </Link>
+          </div>
+
+          <div className="space-y-4 pt-6 lg:justify-center ">
+            <div className="flex w-full items-center justify-between  lg:px-0">
+              <h2 className="font-semibold">Pedidos Recomendados</h2>
+
+              <Button
+                variant="ghost"
+                className="h-fit p-0 text-primary hover:bg-transparent"
+                asChild //as child esta opçãp do shadcn vai pegar toda configuração do css e jogar para o elemento filho no caso ai o link
+              >
+                <Link href="/products/recomended">
+                  Ver todos
+                  <ChevronRightIcon size={16} />
+                </Link>
+              </Button>
+            </div>
+            <ProductList products={products} />
+          </div>
+
+          <div className="hidden w-full  justify-between gap-8  lg:flex  ">
+            <div className="w-full">
+              <Link href={`/categories/${pizzasCategory?.id}/products`}>
+                <PromoBanner
+                  src="/promo-banner-01.png"
+                  alt="Até 30% de desconto em pizzas!"
+                />
+              </Link>
+            </div>
+
+            <div className="w-full">
+              <Link href={`/categories/${burguersCategory?.id}/products`}>
+                <PromoBanner
+                  src="/promo-banner-02.png"
+                  alt="A partir de 17,90 em lanches"
+                />
+              </Link>
+            </div>
+          </div>
+
+          <div className=" pt-6 lg:hidden">
+            <Link href={`/categories/${burguersCategory?.id}/products`}>
+              <PromoBanner
+                src="/promo-banner-02.png"
+                alt="A partir de 17,90 em lanches"
+              />
+            </Link>
+          </div>
+
+          <div className=" items-center space-y-4 pt-6 ">
+            <div className="flex items-center justify-between  lg:px-0">
+              <h2 className="font-semibold">Restaurantes Recomendados</h2>
+
+              <Button
+                variant="ghost"
+                className="h-fit p-0 text-primary hover:bg-transparent"
+                asChild
+              >
+                <Link href="/restaurants/recomended">
+                  Ver todos
+                  <ChevronRightIcon size={16} />
+                </Link>
+              </Button>
+            </div>
+
+            <RestaurantList />
+          </div>
+        </div>
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </>
   );
-}
+};
+
+export default Home;
